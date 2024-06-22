@@ -77,13 +77,19 @@ class studentdashboardnewState extends State<studentdashboardnew> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  int _notificationCount = 1;
+  int _notificationCount = 0;
   List<RemoteMessage> _notifications = [];
 
   void getInitialMessage() async {
     RemoteMessage? message = await FirebaseMessaging.instance.getInitialMessage();
     if (message != null) {
       _handleMessage(message, fromDialog: false);
+
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        setState(() {
+          _notificationCount=_notifications.length;
+        });
+      });
     }
   }
 
@@ -104,6 +110,12 @@ class studentdashboardnewState extends State<studentdashboardnew> {
         content: Text("Invalid page in notification data"),
         duration: Duration(seconds: 3),
       ));
+    }
+    if(_notifications.contains(message)){
+      setState(() {
+        _notifications.remove(message);
+        _notificationCount=_notifications.length;
+      });
     }
   }
 
@@ -155,12 +167,12 @@ class studentdashboardnewState extends State<studentdashboardnew> {
           Text(
             title,
             style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
-          ),
+              ),
           SizedBox(height: 4),
           Text(
             message,
             style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
+              ),
         ],
       ),
       duration: Duration(seconds: 10),
@@ -184,7 +196,7 @@ class studentdashboardnewState extends State<studentdashboardnew> {
                   title: Text(_notifications[index].notification?.body ?? "Invalid Notification"),
                   onTap: () {
                     _handleMessage(_notifications[index]);// Navigate based on notification
-                    _notifications.clear();
+                    // _notifications.clear();
                   },
                 );
               },
@@ -195,6 +207,8 @@ class studentdashboardnewState extends State<studentdashboardnew> {
               child: Text("Close"),
               onPressed: () {
                 Navigator.of(context).pop();
+                _notificationCount = 0;
+                // _notifications.clear();
               },
             ),
           ],
@@ -202,6 +216,7 @@ class studentdashboardnewState extends State<studentdashboardnew> {
       },
     );
   }
+
 
   @override
   void didChangeDependencies() {
@@ -442,7 +457,9 @@ class studentdashboardnewState extends State<studentdashboardnew> {
                 Padding(
                   padding: EdgeInsets.only(right: 20),
                   child: GestureDetector(
-                    onTap: _showNotificationsDialog,
+                    onTap: (){
+                        _showNotificationsDialog();
+                    },
                     child: Stack(
                       children: [
                         Icon(Icons.notifications_none_outlined, color: Colors.black, size: 35),
@@ -460,7 +477,8 @@ class studentdashboardnewState extends State<studentdashboardnew> {
                                 minHeight: 12,
                               ),
                               child: Text(
-                                '$_notificationCount',
+                                // '$_notificationCount',
+                                _notificationCount.toString(),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 8,

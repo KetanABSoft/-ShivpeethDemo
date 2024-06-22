@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="messeges_with_firebase"
+        android:label="Prashala"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -29,7 +29,7 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="message_with_firebase" />
+            android:value="prashala" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
