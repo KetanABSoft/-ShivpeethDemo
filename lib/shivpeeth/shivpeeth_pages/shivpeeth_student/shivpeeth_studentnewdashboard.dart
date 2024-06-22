@@ -14,6 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../constant/conurl.dart';
+import '../../../dash_board_screen.dart';
+import '../../../home_screen.dart';
+import '../../../notice_screen.dart';
 import '../../../notification_services.dart';
 import '../../shivpeeth_gloabelclass/shivpeeth_color.dart';
 import '../../shivpeeth_gloabelclass/shivpeeth_fontstyle.dart';
@@ -74,6 +77,36 @@ class studentdashboardnewState extends State<studentdashboardnew> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  int _notificationCount = 1;
+  List<RemoteMessage> _notifications = [];
+
+  void getInitialMessage() async {
+    RemoteMessage? message = await FirebaseMessaging.instance.getInitialMessage();
+    if (message != null) {
+      _handleMessage(message, fromDialog: false);
+    }
+  }
+
+  void _handleMessage(RemoteMessage message, {bool fromDialog = true}) {
+    if (fromDialog) {
+      Navigator.of(context).pop(); // Close the dialog before navigation
+    }
+    if (message.data["page"] == "notice") {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => WireframeEvents()));
+    } else if (message.data["page"] == "fees") {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => studentfeereportpersonal()));
+    } else if (message.data["page"] == "homework") {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => Wireframehomework(
+          classid: class_id.toString(),
+          sectionid: section_id.toString())));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Invalid page in notification data"),
+        duration: Duration(seconds: 3),
+      ));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -93,7 +126,81 @@ class studentdashboardnewState extends State<studentdashboardnew> {
     setState(() {
       fetchDashboardImage();
       fetch_drawerdata();
+
+      getInitialMessage();
+
+      FirebaseMessaging.onMessage.listen((message) {
+        setState(() {
+          _notifications.add(message);
+          _notificationCount++;
+        });
+        _showSnackBar(message.notification?.title ?? "Notification", message.notification?.body ?? "");
+      });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        setState(() {
+          _notifications.add(message);
+          _notificationCount++;
+        });
+        _handleMessage(message, fromDialog: false); // Directly call the handler to manage navigation
+      });
     });
+  }
+  void _showSnackBar(String title, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 4),
+          Text(
+            message,
+            style: TextStyle(color: Colors.white, fontSize: 14),
+          ),
+        ],
+      ),
+      duration: Duration(seconds: 10),
+      backgroundColor: Colors.green,
+    ));
+  }
+
+  void _showNotificationsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Notifications"),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _notifications.length,
+              itemBuilder: (BuildContext context, int index) {
+                return ListTile(
+                  title: Text(_notifications[index].notification?.body ?? "Invalid Notification"),
+                  onTap: () {
+                    _handleMessage(_notifications[index]);// Navigate based on notification
+                    _notifications.clear();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Close"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -332,15 +439,40 @@ class studentdashboardnewState extends State<studentdashboardnew> {
                 },
               ),
               actions: [
-                IconButton(
-                    onPressed: () {
-
-                    },
-                    icon: Icon(
-                      Icons.notifications_none_outlined,
-                      color: Colors.black,
-                      size: 35,
-                    ))
+                Padding(
+                  padding: EdgeInsets.only(right: 20),
+                  child: GestureDetector(
+                    onTap: _showNotificationsDialog,
+                    child: Stack(
+                      children: [
+                        Icon(Icons.notifications_none_outlined, color: Colors.black, size: 35),
+                        if (_notificationCount > 0)
+                          Positioned(
+                            right: 0,
+                            child: Container(
+                              padding: EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              constraints: BoxConstraints(
+                                minWidth: 12,
+                                minHeight: 12,
+                              ),
+                              child: Text(
+                                '$_notificationCount',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
